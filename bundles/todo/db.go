@@ -11,9 +11,9 @@ type Database struct {
 	DB *gorm.DB
 }
 
-func (db *Database) InitDB() {
+func (db *Database) InitDB(database string) {
 	var err error
-	db.DB, err = gorm.Open("sqlite3", "/tmp/gorm.db")
+	db.DB, err = gorm.Open("sqlite3", database)
 	if err != nil {
 		log.Fatalf("Got an error connecting to database: '%v'", err)
 	}

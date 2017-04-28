@@ -1,21 +1,21 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/servomac/goapi/bundles/todo"
+	"github.com/servomac/todo-api-go/bundles/todo"
 )
 
 func main() {
-	db := todo.Database{}
-	db.InitDB()
-	db.InitSchema()
+	config := getConfig()
 
-	api := rest.NewApi()
-	api.Use(rest.DefaultDevStack...)
+	db := todo.Database{}
+	db.InitDB(config.Database)
+	db.InitSchema()
 
 	router, err := rest.MakeRouter(
 		rest.Get("/todos", db.GetTodos),
@@ -27,6 +27,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	api := rest.NewApi()
+	api.Use(rest.DefaultDevStack...)
 	api.SetApp(router)
-	log.Fatal(http.ListenAndServe(":8080", api.MakeHandler()))
+
+	log.Fatal(initServer(config, api))
+}
+
+func initServer(c Config, api *rest.Api) error {
+	addr := fmt.Sprintf(":%v", c.Port)
+	return http.ListenAndServe(addr, api.MakeHandler())
 }
