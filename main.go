@@ -5,8 +5,24 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
+
 	"github.com/ant0ine/go-json-rest/rest"
 )
+
+type database struct {
+	DB *gorm.DB
+}
+
+func (db *database) InitDB() {
+	var err error
+	db.DB, err = gorm.Open("sqlite3", "/tmp/gorm.db")
+	if err != nil {
+		log.Fatalf("Got an error connecting to database: '%v'", err)
+	}
+	db.DB.LogMode(true)
+}
 
 type Todo struct {
 	Name      string    `json:"name"`
@@ -26,6 +42,9 @@ func GetTodosEndpoint(w rest.ResponseWriter, r *rest.Request) {
 }
 
 func main() {
+	db := database{}
+	db.InitDB()
+
 	api := rest.NewApi()
 	api.Use(rest.DefaultDevStack...)
 
