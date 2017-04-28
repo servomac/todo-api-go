@@ -11,6 +11,24 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 )
 
+func main() {
+	db := database{}
+	db.InitDB()
+	db.InitSchema()
+
+	api := rest.NewApi()
+	api.Use(rest.DefaultDevStack...)
+
+	router, err := rest.MakeRouter(
+		rest.Get("/todos", db.GetTodosEndpoint),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	api.SetApp(router)
+	log.Fatal(http.ListenAndServe(":8080", api.MakeHandler()))
+}
+
 type database struct {
 	DB *gorm.DB
 }
@@ -24,6 +42,10 @@ func (db *database) InitDB() {
 	db.DB.LogMode(true)
 }
 
+func (db *database) InitSchema() {
+	db.DB.AutoMigrate(&Todo{})
+}
+
 type Todo struct {
 	Name      string    `json:"name"`
 	Completed bool      `json:"completed"`
@@ -32,28 +54,8 @@ type Todo struct {
 
 type Todos []Todo
 
-func GetTodosEndpoint(w rest.ResponseWriter, r *rest.Request) {
-	todos := Todos{
-		Todo{Name: "Test"},
-		Todo{Name: "Another"},
-	}
-
-	w.WriteJson(todos)
-}
-
-func main() {
-	db := database{}
-	db.InitDB()
-
-	api := rest.NewApi()
-	api.Use(rest.DefaultDevStack...)
-
-	router, err := rest.MakeRouter(
-		rest.Get("/todos", GetTodosEndpoint),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	api.SetApp(router)
-	log.Fatal(http.ListenAndServe(":8080", api.MakeHandler()))
+func (db *database) GetTodosEndpoint(w rest.ResponseWriter, r *rest.Request) {
+	todos := Todos{}
+	db.DB.Find(&todos)
+	w.WriteJson(&todos)
 }
