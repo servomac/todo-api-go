@@ -20,7 +20,9 @@ func main() {
 	api.Use(rest.DefaultDevStack...)
 
 	router, err := rest.MakeRouter(
-		rest.Get("/todos", db.GetTodosEndpoint),
+		rest.Get("/todos", db.GetTodos),
+		rest.Get("/todos/:id", db.GetTodo),
+		rest.Post("/todos", db.PostTodo),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -47,6 +49,7 @@ func (db *database) InitSchema() {
 }
 
 type Todo struct {
+	ID        int64     `json:"id"`
 	Name      string    `json:"name"`
 	Completed bool      `json:"completed"`
 	Due       time.Time `json:"due"`
@@ -54,8 +57,33 @@ type Todo struct {
 
 type Todos []Todo
 
-func (db *database) GetTodosEndpoint(w rest.ResponseWriter, r *rest.Request) {
+func (db *database) GetTodos(w rest.ResponseWriter, r *rest.Request) {
 	todos := Todos{}
 	db.DB.Find(&todos)
 	w.WriteJson(&todos)
+}
+
+func (db *database) GetTodo(w rest.ResponseWriter, r *rest.Request) {
+	id := r.PathParam("id")
+	todo := Todo{}
+	if db.DB.First(&todo, id).Error != nil {
+		rest.NotFound(w, r)
+		return
+	}
+	w.WriteJson(&todo)
+}
+
+func (db *database) PostTodo(w rest.ResponseWriter, r *rest.Request) {
+	todo := Todo{}
+
+	if err := r.DecodeJsonPayload(&todo); err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := db.DB.Save(&todo).Error; err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(201)
+	w.WriteJson(&todo)
 }
