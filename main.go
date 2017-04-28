@@ -1,12 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/ant0ine/go-json-rest/rest"
 )
 
 type Todo struct {
@@ -17,19 +16,25 @@ type Todo struct {
 
 type Todos []Todo
 
-func GetTodosEndpoint(w http.ResponseWriter, r *http.Request) {
+func GetTodosEndpoint(w rest.ResponseWriter, r *rest.Request) {
 	todos := Todos{
 		Todo{Name: "Test"},
 		Todo{Name: "Another"},
 	}
 
-	json.NewEncoder(w).Encode(todos)
+	w.WriteJson(todos)
 }
 
 func main() {
-	router := mux.NewRouter()
+	api := rest.NewApi()
+	api.Use(rest.DefaultDevStack...)
 
-	router.HandleFunc("/todos", GetTodosEndpoint).Methods("GET")
-
-	log.Fatal(http.ListenAndServe(":8080", router))
+	router, err := rest.MakeRouter(
+		rest.Get("/todos", GetTodosEndpoint),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	api.SetApp(router)
+	log.Fatal(http.ListenAndServe(":8080", api.MakeHandler()))
 }
