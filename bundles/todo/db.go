@@ -1,19 +1,17 @@
-package main
+package todo
 
 import (
 	"log"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-
-	"github.com/servomac/goapi/bundles/todo"
 )
 
-type database struct {
+type Database struct {
 	DB *gorm.DB
 }
 
-func (db *database) InitDB() {
+func (db *Database) InitDB() {
 	var err error
 	db.DB, err = gorm.Open("sqlite3", "/tmp/gorm.db")
 	if err != nil {
@@ -22,6 +20,6 @@ func (db *database) InitDB() {
 	db.DB.LogMode(true)
 }
 
-func (db *database) InitSchema() {
-	db.DB.AutoMigrate(&todo.Todo{})
+func (db *Database) InitSchema() {
+	db.DB.AutoMigrate(&Todo{})
 }
