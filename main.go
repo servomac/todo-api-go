@@ -21,8 +21,10 @@ func main() {
 
 	router, err := rest.MakeRouter(
 		rest.Get("/todos", db.GetTodos),
-		rest.Get("/todos/:id", db.GetTodo),
 		rest.Post("/todos", db.PostTodo),
+		rest.Get("/todos/:id", db.GetTodo),
+		rest.Put("/todos/:id", db.PutTodo),
+		rest.Delete("/todos/:id", db.DeleteTodo),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -86,4 +88,42 @@ func (db *database) PostTodo(w rest.ResponseWriter, r *rest.Request) {
 	}
 	w.WriteHeader(201)
 	w.WriteJson(&todo)
+}
+
+func (db *database) PutTodo(w rest.ResponseWriter, r *rest.Request) {
+	id := r.PathParam("id")
+	todo := Todo{}
+	if db.DB.First(&todo, id).Error != nil {
+		rest.NotFound(w, r)
+		return
+	}
+
+	updated := Todo{}
+	if err := r.DecodeJsonPayload(&updated); err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	todo.Completed = updated.Completed
+
+	if err := db.DB.Save(&todo).Error; err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteJson(&todo)
+}
+
+func (db *database) DeleteTodo(w rest.ResponseWriter, r *rest.Request) {
+	id := r.PathParam("id")
+	todo := Todo{}
+	if db.DB.First(&todo, id).Error != nil {
+		rest.NotFound(w, r)
+		return
+	}
+
+	if err := db.DB.Delete(&todo).Error; err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
